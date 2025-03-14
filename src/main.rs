@@ -30,6 +30,9 @@ async fn main() {
         receiver_address,
     } = args;
 
+    println!("Using export address: {:#?}", export_address);
+    println!("Using receiver address: {:#?}", receiver_address);
+
     let (lc, mc, tc) = handler::create_clients(export_address).await;
 
     let state = Arc::new(handler::AppState {
