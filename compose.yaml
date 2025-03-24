@@ -1,0 +1,20 @@
+services:
+  handler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      ["/kinesis-handler", "-e", "http://otelcol:4317", "-r", "0.0.0.0:5318"]
+    ports:
+      - 5318:5318
+    depends_on:
+      - otelcol
+
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.121.0
+    container_name: otelcol
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - 4317:4317
+      - 4318:4318

@@ -1,4 +1,4 @@
-use base64::{Engine, prelude::BASE64_STANDARD};
+use base64::prelude::*;
 use opentelemetry_proto::tonic::collector::metrics::v1::{
     ExportMetricsServiceRequest,
     metrics_service_client::MetricsServiceClient,
@@ -9,7 +9,11 @@ use tonic::transport::Channel;
 pub async fn create_metric_client(
     addr: String,
 ) -> Result<MetricsServiceClient<Channel>, tonic::transport::Error> {
-    MetricsServiceClient::connect(addr).await
+    let channel = tonic::transport::Channel::from_shared(addr)
+    .unwrap()
+    .connect()
+    .await?;
+    Ok(MetricsServiceClient::new(channel))
 }
 
 pub struct MetricRequest(pub ExportMetricsServiceRequest);

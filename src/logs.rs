@@ -7,7 +7,11 @@ use tonic::transport::Channel;
 pub async fn create_log_client(
     addr: String,
 ) -> Result<LogsServiceClient<Channel>, tonic::transport::Error> {
-    LogsServiceClient::connect(addr).await
+    let channel = tonic::transport::Channel::from_shared(addr)
+        .unwrap()
+        .connect()
+        .await?;
+    Ok(LogsServiceClient::new(channel))
 }
 
 pub struct LogRequest(pub ExportLogsServiceRequest);

@@ -1,4 +1,4 @@
-use base64::{Engine, prelude::BASE64_STANDARD};
+use base64::prelude::*;
 use opentelemetry_proto::tonic::collector::trace::v1::{
     ExportTraceServiceRequest, trace_service_client::TraceServiceClient,
 };
@@ -8,7 +8,11 @@ use tonic::transport::Channel;
 pub async fn create_trace_client(
     addr: String,
 ) -> Result<TraceServiceClient<Channel>, tonic::transport::Error> {
-    TraceServiceClient::connect(addr).await
+    let channel = tonic::transport::Channel::from_shared(addr)
+        .unwrap()
+        .connect()
+        .await?;
+    Ok(TraceServiceClient::new(channel))
 }
 
 pub struct TraceRequest(pub ExportTraceServiceRequest);
