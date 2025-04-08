@@ -18,7 +18,7 @@ struct Args {
     export_address: String,
 
     /// Endpoint to listen on
-    #[arg(short, long, default_value = "http://localhost:5318")]
+    #[arg(short, long, default_value = "localhost:5318")]
     receiver_address: String,
 }
 

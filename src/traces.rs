@@ -27,3 +27,31 @@ impl TryFrom<String> for TraceRequest {
         Ok(TraceRequest(decoded))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_trace_request_try_from() {
+        let request = ExportTraceServiceRequest::default();
+
+        let mut buf = Vec::new();
+        request.encode(&mut buf).unwrap();
+        let encoded = BASE64_STANDARD.encode(&buf);
+
+        let result = TraceRequest::try_from(encoded);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_trace_request_try_from_invalid_data() {
+        let result = TraceRequest::try_from("not base64".to_string());
+        assert!(result.is_err());
+
+        let encoded = BASE64_STANDARD.encode("not valid protobuf");
+        let result = TraceRequest::try_from(encoded);
+        assert!(result.is_err());
+    }
+}

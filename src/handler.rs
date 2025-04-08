@@ -1,5 +1,5 @@
 use crate::{kinesis, logs, metrics, traces};
-use axum::{Json, extract::State, response::IntoResponse};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use opentelemetry_proto::tonic::collector::{
     logs::v1::logs_service_client::LogsServiceClient,
     metrics::v1::metrics_service_client::MetricsServiceClient,
@@ -8,7 +8,6 @@ use opentelemetry_proto::tonic::collector::{
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
-
 
 #[derive(Clone, Debug)]
 pub struct AppState {
@@ -70,11 +69,14 @@ pub async fn handler(
         .partition(|result| !matches!(result, TelemetrySignal::UnparseableRecord(_)));
 
     if valid.is_empty() {
-        return Json(kinesis::FirehoseResponse {
-            request_id,
-            timestamp,
-            error_message: Some("All records failed to parse".into()),
-        });
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(kinesis::FirehoseResponse {
+                request_id,
+                timestamp,
+                error_message: Some("All records failed to parse".into()),
+            }),
+        );
     }
 
     if !invalid.is_empty() {
@@ -110,9 +112,77 @@ pub async fn handler(
         }
     }
 
-    Json(kinesis::FirehoseResponse {
-        request_id,
-        timestamp,
-        error_message: None,
-    })
+    (
+        StatusCode::OK,
+        Json(kinesis::FirehoseResponse {
+            request_id,
+            timestamp,
+            error_message: None,
+        }),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::kinesis::{FirehoseRequest, KinesisRecord};
+    use axum::{
+        Router,
+        body::Body,
+        http::{Request, StatusCode},
+        routing::post,
+    };
+    use http_body_util::BodyExt;
+    use serde_json::Value;
+    use tower::ServiceExt;
+
+    fn test_app() -> Router {
+        let state = create_test_state();
+
+        Router::new().route("/", post(handler)).with_state(state)
+    }
+
+    fn create_test_state() -> Arc<AppState> {
+        let channel = tonic::transport::Channel::from_static("http://[::1]:50051").connect_lazy();
+
+        Arc::new(AppState {
+            log_client: Arc::new(Mutex::new(LogsServiceClient::new(channel.clone()))),
+            metric_client: Arc::new(Mutex::new(MetricsServiceClient::new(channel.clone()))),
+            trace_client: Arc::new(Mutex::new(TraceServiceClient::new(channel.clone()))),
+        })
+    }
+
+    #[tokio::test]
+    async fn test_handler_with_invalid_records() {
+        let app = test_app();
+
+        let request_body = FirehoseRequest {
+            request_id: "test-id".to_string(),
+            timestamp: 123456789,
+            records: vec![KinesisRecord {
+                data: "invalid-data".to_string(),
+            }],
+        };
+
+        let json_body = serde_json::to_vec(&request_body).unwrap();
+
+        let request = Request::builder()
+            .uri("/")
+            .method("POST")
+            .header("content-type", "application/json")
+            .body(Body::from(json_body))
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+
+        let body: Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(body["requestId"], "test-id");
+        assert_eq!(body["timestamp"], 123456789);
+        assert_eq!(body["errorMessage"], "All records failed to parse");
+    }
 }
