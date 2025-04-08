@@ -640,6 +640,7 @@ dependencies = [
  "opentelemetry-proto",
  "prost",
  "serde",
+ "serde_json",
  "tokio",
  "tonic",
  "tower 0.5.2",
