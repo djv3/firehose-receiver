@@ -26,3 +26,31 @@ impl TryFrom<String> for LogRequest {
         Ok(LogRequest(decoded))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_log_request_try_from() {
+        let request = ExportLogsServiceRequest::default();
+
+        let mut buf = Vec::new();
+        request.encode(&mut buf).unwrap();
+        let encoded = BASE64_STANDARD.encode(&buf);
+
+        let result = LogRequest::try_from(encoded);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_log_request_try_from_invalid_data() {
+        let result = LogRequest::try_from("not base64".to_string());
+        assert!(result.is_err());
+
+        let encoded = BASE64_STANDARD.encode("not valid protobuf");
+        let result = LogRequest::try_from(encoded);
+        assert!(result.is_err());
+    }
+}

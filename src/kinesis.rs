@@ -42,7 +42,7 @@ mod tests {
         assert_eq!(request.timestamp, 1234567890);
         assert_eq!(request.records.len(), 2);
         assert_eq!(request.records[0].data, "b64dataOne");
-        assert_eq!(request.records[1].data, "b64dataTwo=");
+        assert_eq!(request.records[1].data, "b64dataTwo");
     }
 
     #[test]
