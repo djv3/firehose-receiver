@@ -9,7 +9,6 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
 
-
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub log_client: Arc<Mutex<LogsServiceClient<Channel>>>,
