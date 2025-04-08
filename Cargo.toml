@@ -2,6 +2,8 @@
 name = "kinesis-handler"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "A very simple Kinesis receiver that converts Kinesis records into OpenTelemetry Logs/Metrics/Traces."
 
 [dependencies]
 axum = { version = "0.8.1", features = ["macros"] }

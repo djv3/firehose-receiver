@@ -81,9 +81,8 @@ pub async fn handler(
 
     if !invalid.is_empty() {
         for problem in invalid {
-            match problem {
-                TelemetrySignal::UnparseableRecord(err) => eprintln!("{err}"),
-                _ => (),
+            if let TelemetrySignal::UnparseableRecord(err) = problem {
+                eprintln!("Unparseable record: {err}");
             }
         }
     }
